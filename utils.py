@@ -34,9 +34,8 @@ def is_frame_auth(frame: Packet) -> bool:
         return False
 
 def is_frame_deauth(frame: Packet) -> bool:
-    try:
-        is_deauth = frame.wlan.fc_subtype == "0x000c"
-        return is_deauth
+    try:    
+        return frame.wlan.fc_type_subtype == "0x000c"
     except:
         return False
 
