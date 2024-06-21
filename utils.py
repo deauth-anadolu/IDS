@@ -15,10 +15,8 @@ def live_capture():
     for frame in capture.sniff_continuously():
         yield frame
 
-def calc_cap_len(cap):
-    cap_len = 0
-    for _ in cap: cap_len += 1
-    return cap_len
+def cap_len(cap):
+    return sum(1 for _ in cap)
 
 def get_frame_time(frame: Packet):
     time_stamp = frame.frame_info.time # type: ignore
@@ -26,18 +24,27 @@ def get_frame_time(frame: Packet):
 
 def is_frame_auth(frame: Packet) -> bool:
     try:
-        is_auth = frame.wlan.fc_subtpye == "0x000b"
-        is_success = frame.layers[-1].wlan_fixed_status_code == "0x0000"
-        
-        return is_auth and is_success
-    except:
+        return frame.wlan.fc_type_subtype == "0x000b"
+    except: 
         return False
 
 def is_frame_deauth(frame: Packet) -> bool:
     try:    
-        return frame.wlan.fc_type_subtype == "0x000c"
+        return frame.wlan.fc_type_subtype == "0x000c" or frame.wlan.fc_type_subtype == "0x000a"
     except:
         return False
+
+def is_deauth_attack(frame: Packet) -> bool:
+    try:
+       is_unprotected = int(frame.wlan.fc_protected) == 0
+       is_deauth_or_disassoc = int(frame.wlan.fc_type_subtype, 16) in (10, 12)
+       is_within_frame_range = 1088022 <= frame.number <= 1626254
+
+       if is_deauth_or_disassoc and is_unprotected and is_within_frame_range:
+           return 1
+    except:
+        return 0
+    
 
 def is_unknown_device(frame: Packet, devices: list[Device]):
     da = get_da(frame)
